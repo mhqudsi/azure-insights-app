@@ -1,0 +1,169 @@
+.insights-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-card {
+  border-radius: 1rem;
+}
+
+.page-card-header {
+  padding-top: 1rem;
+}
+
+.header-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.toolbar-field {
+  min-width: 220px;
+}
+
+.toolbar-duration {
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.field-prefix {
+  margin-right: 0.25rem;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.app-id-pill {
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 80%, transparent);
+}
+
+.loading-panel {
+  min-height: 220px;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+}
+
+.summary-card {
+  border-radius: 0.75rem;
+}
+
+.summary-label {
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.ag-grid-wrap {
+  background: var(--ag-background-color, #fff);
+}
+
+.ag-grid-host {
+  display: block;
+  width: 100%;
+  height: min(70vh, 620px);
+}
+
+/* Full border on every cell + centered values (headers, body, floating filters) */
+:host ::ng-deep .ag-grid-host.ag-theme-quartz {
+  --ag-border-color: #6d6d6d;
+  --ag-secondary-border-color: var(--ag-border-color);
+  /* Draw borders only from rules below so lines stay 1px (no double theme lines) */
+  --ag-cell-horizontal-border: none;
+  --ag-row-border-width: 0;
+  --ag-row-border-style: solid;
+  --ag-row-border-color: transparent;
+
+  .ag-root-wrapper {
+    border: 1px solid var(--ag-border-color);
+  }
+
+  .ag-header-cell,
+  .ag-header-group-cell {
+    border: 1px solid var(--ag-border-color);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ag-cell {
+    border: 1px solid var(--ag-border-color);
+    box-sizing: border-box;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ag-header-cell-comp-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100%;
+  }
+
+  .ag-header-cell-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+  }
+
+  .ag-cell-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100%;
+    text-align: center;
+  }
+
+  .ag-cell-value,
+  .ag-group-value {
+    width: 100%;
+    text-align: center;
+  }
+
+  .ag-floating-filter {
+    border: 1px solid var(--ag-border-color);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ag-floating-filter-body {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .ag-floating-filter-body input,
+  .ag-floating-filter-body .ag-input-field-input {
+    text-align: center;
+  }
+}
+
+:host ::ng-deep .ag-grid-host .ag-row.ag-row-failures {
+  background-color: color-mix(in srgb, var(--ag-row-hover-color, #f0f0f0) 65%, #f8d7da);
+}
+
+@media (max-width: 1199px) {
+  .toolbar-duration {
+    max-width: none;
+    width: 100%;
+  }
+}

@@ -1,0 +1,45 @@
+<nav class="navbar navbar-expand-lg navbar-dark app-navbar sticky-top py-2">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" routerLink="/">
+      <span class="brand-icon" aria-hidden="true">☁</span>
+      <span class="d-flex flex-column lh-sm">
+        <span>Azure Insights</span>
+        <span class="navbar-text-muted d-none d-sm-inline">Monitoring workspace</span>
+      </span>
+    </a>
+
+    <button
+      class="navbar-toggler border-0 shadow-none"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarMain"
+      aria-controls="navbarMain"
+      aria-expanded="false"
+      aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarMain">
+      <ul class="navbar-nav ms-lg-auto align-items-lg-center gap-lg-1 mt-3 mt-lg-0">
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            routerLink="/"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }">
+            Subscriptions
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            routerLink="/InsightsData"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: false }">
+            Endpoint metrics
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,36 @@
+.navbar.app-navbar {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(120deg, #0d47a1 0%, #1565c0 45%, #0277bd 100%);
+}
+
+.navbar.app-navbar .nav-link {
+  border-radius: 0.375rem;
+  margin: 0 0.15rem;
+  padding: 0.5rem 0.85rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.navbar.app-navbar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.navbar.app-navbar .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 1.1rem;
+}
+
+.navbar-text-muted {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}

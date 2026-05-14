@@ -1,0 +1,52 @@
+.page-header h1 {
+  letter-spacing: -0.02em;
+}
+
+.search-icon {
+  left: 1rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.state-panel {
+  animation: fade-in 0.25s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.subs-card,
+.insight-card {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  outline: none;
+}
+
+.subs-card:hover,
+.insight-card:hover,
+.subs-card:focus-visible,
+.insight-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 0.75rem 1.5rem rgba(13, 71, 161, 0.12) !important;
+}
+
+.subs-card--active {
+  box-shadow: 0 0 0 2px #0d6efd !important;
+}
+
+.insight-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+.empty-hint {
+  animation: fade-in 0.3s ease-out;
+}

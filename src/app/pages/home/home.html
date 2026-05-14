@@ -1,0 +1,153 @@
+<div class="home-page container py-4 py-lg-5">
+  <header class="page-header mb-4">
+    <h1 class="h3 mb-1">Choose a subscription</h1>
+    <p class="text-body-secondary mb-0">
+      Search and open a subscription, then pick an Application Insights resource to view endpoint metrics.
+    </p>
+  </header>
+
+  <div *ngIf="!subsFetched" class="state-panel d-flex align-items-center gap-3 p-4 rounded-3 border bg-body-tertiary">
+    <div class="spinner-border text-primary" role="status" aria-label="Loading subscriptions"></div>
+    <div>
+      <div class="fw-medium">Loading subscriptions…</div>
+      <div class="small text-body-secondary">Hang tight while we fetch your Azure subscriptions.</div>
+    </div>
+  </div>
+
+  <div *ngIf="subsFetched && subsLoadError" class="alert alert-danger" role="alert">
+    We could not load subscriptions. Check your connection or sign-in, then refresh the page.
+  </div>
+
+  <section *ngIf="subsFetched && !subsLoadError" class="subs-section mb-5">
+    <div class="toolbar card border-0 shadow-sm mb-3">
+      <div class="card-body py-3 d-flex flex-column flex-md-row gap-3 align-items-stretch align-items-md-center">
+        <div class="flex-grow-1 position-relative">
+          <span class="search-icon position-absolute top-50 translate-middle-y text-body-secondary" aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            class="form-control form-control-lg ps-5"
+            [(ngModel)]="subscriptionSearch"
+            placeholder="Search by name, id, or state…"
+            aria-label="Filter subscriptions" />
+        </div>
+        <div class="text-body-secondary small text-md-end text-nowrap">
+          {{ filteredSubscriptions.length }}
+          subscription{{ filteredSubscriptions.length === 1 ? '' : 's' }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="filteredSubscriptions.length === 0" class="empty-hint card border-0 shadow-sm">
+      <div class="card-body text-center py-5">
+        <div class="display-6 mb-2" aria-hidden="true">📭</div>
+        <p class="mb-0 text-body-secondary">No subscriptions match your search. Try another keyword.</p>
+      </div>
+    </div>
+
+    <div class="row g-3" *ngIf="filteredSubscriptions.length > 0">
+      <div class="col-sm-6 col-lg-4 col-xl-3" *ngFor="let subs of filteredSubscriptions; trackBy: trackSub">
+        <div
+          class="card subs-card h-100 border-0 shadow-sm"
+          [class.subs-card--active]="selectedSub?.id === subs.id"
+          (click)="onSubsCardClick(subs)"
+          (keyup.enter)="onSubsCardClick(subs)"
+          tabindex="0"
+          role="button"
+          [attr.aria-pressed]="selectedSub?.id === subs.id">
+          <div class="card-body">
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+              <span class="badge rounded-pill" [ngClass]="subs.state === 'Enabled' ? 'text-bg-success' : 'text-bg-secondary'">
+                {{ subs.state || 'Unknown' }}
+              </span>
+              <span class="text-body-secondary small">Azure</span>
+            </div>
+            <h2 class="h6 card-title mb-1 fw-semibold text-truncate" [title]="subs.displayName || subs.id">
+              {{ subs.displayName || 'Subscription' }}
+            </h2>
+            <p class="small text-body-secondary font-monospace text-truncate mb-0" [title]="subs.id">{{ subs.id }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section *ngIf="selectedSub" class="insights-section">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-3">
+      <div>
+        <h2 class="h5 mb-1">Application Insights resources</h2>
+        <p class="text-body-secondary small mb-0">
+          Subscription:
+          <strong>{{ selectedSub.displayName || selectedSub.id }}</strong>
+        </p>
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm align-self-start" (click)="clearSubscriptionSelection()">
+        ← Change subscription
+      </button>
+    </div>
+
+    <div *ngIf="insightsLoading" class="state-panel d-flex align-items-center gap-3 p-4 rounded-3 border bg-body-tertiary mb-3">
+      <div class="spinner-border text-primary" role="status" aria-label="Loading insights"></div>
+      <div>
+        <div class="fw-medium">Loading Application Insights resources…</div>
+        <div class="small text-body-secondary">Fetching resources for the selected subscription.</div>
+      </div>
+    </div>
+
+    <div *ngIf="!insightsLoading && insightsLoadError" class="alert alert-warning" role="alert">
+      Could not load Application Insights resources for this subscription.
+    </div>
+
+    <ng-container *ngIf="!insightsLoading && !insightsLoadError">
+      <div class="toolbar card border-0 shadow-sm mb-3">
+        <div class="card-body py-3 d-flex flex-column flex-md-row gap-3 align-items-stretch align-items-md-center">
+          <div class="flex-grow-1 position-relative">
+            <span class="search-icon position-absolute top-50 translate-middle-y text-body-secondary" aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              class="form-control ps-5"
+              [(ngModel)]="insightSearch"
+              placeholder="Search insights by name, resource group, region, or app id…"
+              aria-label="Filter Application Insights resources" />
+          </div>
+          <div class="text-body-secondary small text-md-end">
+            {{ filteredInsights.length }} resource{{ filteredInsights.length === 1 ? '' : 's' }}
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="filteredInsights.length === 0" class="empty-hint card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+          <div class="display-6 mb-2" aria-hidden="true">🧭</div>
+          <p class="mb-0 text-body-secondary">No resources match your search.</p>
+        </div>
+      </div>
+
+      <div class="row g-3" *ngIf="filteredInsights.length > 0">
+        <div class="col-sm-6 col-lg-4" *ngFor="let insight of filteredInsights; trackBy: trackInsight">
+          <div
+            class="card insight-card h-100 border-0 shadow-sm"
+            (click)="onInsightCardClick(insight)"
+            (keyup.enter)="onInsightCardClick(insight)"
+            tabindex="0"
+            role="button">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="insight-dot rounded-circle flex-shrink-0" [style.backgroundColor]="insight.color || '#0078d4'"></span>
+                <h3 class="h6 mb-0 fw-semibold text-truncate" [title]="insight.name">{{ insight.name }}</h3>
+              </div>
+              <ul class="list-unstyled small text-body-secondary mb-2">
+                <li class="text-truncate" [title]="insight.resourceGroupName ?? ''">
+                  <span class="text-uppercase text-muted me-1">RG</span> {{ insight.resourceGroupName ?? '—' }}
+                </li>
+                <li class="text-truncate" [title]="insight.location ?? ''">
+                  <span class="text-uppercase text-muted me-1">Region</span> {{ insight.location ?? '—' }}
+                </li>
+              </ul>
+              <span class="btn btn-sm btn-primary w-100">View endpoints</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </section>
+</div>
