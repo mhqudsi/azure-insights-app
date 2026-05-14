@@ -3,13 +3,13 @@ name: Build and Deploy Angular to Azure Web App
 on:
   push:
     branches:
-      - master
+      - main
 
 permissions:
   id-token: write
   contents: read
 
-  jobs:
+jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
