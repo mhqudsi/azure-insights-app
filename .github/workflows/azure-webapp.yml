@@ -39,5 +39,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: azureinsightsmonitoringui
-          slot-name: azureinsightsmonitoringui-azureinsightsmonitoringui-preprod
+          slot-name: azureinsightsmonitoringui-preprod
           package: dist/azure-insights-app/browser
