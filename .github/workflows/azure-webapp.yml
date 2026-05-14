@@ -38,5 +38,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: azureinsightsmonitoringui-preprod
+          app-name: azureinsightsmonitoringui
+          slot-name: preprod
           package: dist/azure-insights-app/browser
