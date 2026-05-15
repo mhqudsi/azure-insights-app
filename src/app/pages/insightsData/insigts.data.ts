@@ -17,6 +17,7 @@ import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
   ColDef,
+  ColGroupDef,
   ModuleRegistry,
   RowClassRules,
 } from 'ag-grid-community';
@@ -30,6 +31,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import {
   InsightsService,
@@ -44,6 +46,16 @@ import {
   toApiDateRange,
 } from './insights-date-range';
 import { normalizeEndpointRows } from './insights-endpoint.mapper';
+import {
+  EndpointCompareRow,
+  SummaryCompareMetric,
+  buildCompareColumnDefs,
+  buildSummaryCompareMetrics,
+  deltaTrendClass,
+  formatCompareDelta,
+  formatPeriodLabel,
+  mergeEndpointsForCompare,
+} from './insights-compare';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -66,6 +78,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
     MatTooltipModule,
     MatDatepickerModule,
     MatButtonToggleModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './insights.data.html',
   styleUrls: ['./insights.data.scss'],
@@ -79,8 +92,16 @@ export class InsightsData implements OnInit {
 
   readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
+  compareMode = false;
+
   rowData: EndpointDetails[] = [];
   summary: InsightsSummary | null = null;
+
+  compareRowData: EndpointCompareRow[] = [];
+  compareSummaryA: InsightsSummary | null = null;
+  compareSummaryB: InsightsSummary | null = null;
+  summaryCompareMetrics: SummaryCompareMetric[] = [];
+
   filterText = '';
   loading = false;
   loadError = false;
@@ -90,8 +111,12 @@ export class InsightsData implements OnInit {
   endDate: Date | null = null;
   activePreset: InsightsDatePreset | null = null;
 
-  /** Skips dateChange handlers while preset dates are applied programmatically. */
+  compareStartDate: Date | null = null;
+  compareEndDate: Date | null = null;
+  compareActivePreset: InsightsDatePreset | null = null;
+
   private suppressDateChange = false;
+  private suppressCompareDateChange = false;
   private fetchRequestId = 0;
 
   readonly datePresets: { value: InsightsDatePreset; label: string }[] = [
@@ -163,7 +188,9 @@ export class InsightsData implements OnInit {
     },
   ];
 
-  defaultColDef: ColDef<EndpointDetails> = {
+  compareColumnDefs: (ColDef<EndpointCompareRow> | ColGroupDef<EndpointCompareRow>)[] = [];
+
+  defaultColDef: ColDef = {
     sortable: true,
     resizable: true,
     floatingFilter: true,
@@ -173,6 +200,12 @@ export class InsightsData implements OnInit {
 
   rowClassRules: RowClassRules<EndpointDetails> = {
     'ag-row-failures': (params) => (params.data?.failedRequests ?? 0) > 0,
+  };
+
+  compareRowClassRules: RowClassRules<EndpointCompareRow> = {
+    'ag-row-failures': (params) =>
+      (params.data?.failedRequestsA ?? 0) > 0 ||
+      (params.data?.failedRequestsB ?? 0) > 0,
   };
 
   constructor() {
@@ -190,7 +223,7 @@ export class InsightsData implements OnInit {
               return;
             }
 
-            if (this.canFetch) {
+            if (this.canLoad) {
               this.fetchInsightsData(insightId);
             } else {
               this.resetData();
@@ -210,33 +243,85 @@ export class InsightsData implements OnInit {
       return;
     }
 
-    this.setPresetDates('today');
+    this.setPresetDates('today', 'primary');
+    this.setPresetDates('yesterday', 'compare');
   }
 
   get canFetch(): boolean {
-    return (
-      this.startDate != null &&
-      this.endDate != null &&
-      startOfDay(this.startDate).getTime() <= startOfDay(this.endDate).getTime()
-    );
+    return this.isValidRange(this.startDate, this.endDate);
+  }
+
+  get canFetchCompare(): boolean {
+    return this.isValidRange(this.compareStartDate, this.compareEndDate);
+  }
+
+  get canLoad(): boolean {
+    return this.canFetch && (!this.compareMode || this.canFetchCompare);
   }
 
   get dateRangeQuery(): InsightsDateRange | undefined {
-    if (!this.canFetch || this.startDate == null || this.endDate == null) {
-      return undefined;
-    }
-    return toApiDateRange(this.startDate, this.endDate);
+    return this.toQuery(this.startDate, this.endDate);
   }
 
-  applyPreset(preset: InsightsDatePreset): void {
-    this.activePreset = preset;
-    this.setPresetDates(preset);
+  get compareDateRangeQuery(): InsightsDateRange | undefined {
+    return this.toQuery(this.compareStartDate, this.compareEndDate);
+  }
+
+  get periodALabel(): string {
+    if (!this.startDate || !this.endDate) {
+      return 'Period A';
+    }
+    return formatPeriodLabel(this.startDate, this.endDate);
+  }
+
+  get periodBLabel(): string {
+    if (!this.compareStartDate || !this.compareEndDate) {
+      return 'Period B';
+    }
+    return formatPeriodLabel(this.compareStartDate, this.compareEndDate);
+  }
+
+  get hasGridData(): boolean {
+    return this.compareMode
+      ? this.compareRowData.length > 0
+      : this.rowData.length > 0;
+  }
+
+  onCompareModeChange(enabled: boolean): void {
+    this.compareMode = enabled;
+    if (enabled) {
+      if (!this.canFetchCompare) {
+        this.setPresetDates('yesterday', 'compare');
+      }
+      this.updateCompareColumnDefs();
+    } else {
+      this.compareRowData = [];
+      this.compareSummaryA = null;
+      this.compareSummaryB = null;
+      this.summaryCompareMetrics = [];
+    }
+    this.onDateRangeChanged();
+  }
+
+  applyPreset(preset: InsightsDatePreset, target: 'primary' | 'compare' = 'primary'): void {
+    if (target === 'primary') {
+      this.activePreset = preset;
+    } else {
+      this.compareActivePreset = preset;
+    }
+    this.setPresetDates(preset, target);
     this.onDateRangeChanged();
   }
 
   onPresetChange(preset: InsightsDatePreset | null): void {
     if (preset) {
-      this.applyPreset(preset);
+      this.applyPreset(preset, 'primary');
+    }
+  }
+
+  onComparePresetChange(preset: InsightsDatePreset | null): void {
+    if (preset) {
+      this.applyPreset(preset, 'compare');
     }
   }
 
@@ -248,26 +333,42 @@ export class InsightsData implements OnInit {
     this.onDateRangeChanged();
   }
 
+  onCompareManualDateChange(): void {
+    if (this.suppressCompareDateChange) {
+      return;
+    }
+    this.compareActivePreset = null;
+    this.onDateRangeChanged();
+  }
+
   onDateRangeChanged(): void {
     if (!this.appId) {
       return;
     }
 
-    if (!this.canFetch) {
+    if (!this.canLoad) {
       this.loading = false;
       this.rowData = [];
       this.summary = null;
+      this.compareRowData = [];
+      this.compareSummaryA = null;
+      this.compareSummaryB = null;
+      this.summaryCompareMetrics = [];
       this.loadError = false;
       this.cdr.markForCheck();
       return;
+    }
+
+    if (this.compareMode) {
+      this.updateCompareColumnDefs();
     }
 
     this.fetchInsightsData(this.appId);
   }
 
   fetchInsightsData(id: string): void {
-    const range = this.dateRangeQuery;
-    if (!range) {
+    const rangeA = this.dateRangeQuery;
+    if (!rangeA) {
       this.loading = false;
       return;
     }
@@ -276,58 +377,22 @@ export class InsightsData implements OnInit {
     this.loading = true;
     this.loadError = false;
     this.summary = null;
+    this.compareSummaryA = null;
+    this.compareSummaryB = null;
+    this.summaryCompareMetrics = [];
 
-    let endpointsFailed = false;
-    let summaryFailed = false;
+    if (!this.compareMode) {
+      this.fetchSinglePeriod(id, rangeA, requestId);
+      return;
+    }
 
-    forkJoin({
-      endpoints: this.insightsService.getInsightsEndpointDetail(id, range).pipe(
-        catchError(() => {
-          endpointsFailed = true;
-          return of([] as unknown);
-        }),
-      ),
-      summary: this.insightsService.getInsightsSummaryDetail(id, range).pipe(
-        catchError(() => {
-          summaryFailed = true;
-          return of(null);
-        }),
-      ),
-    })
-      .pipe(
-        finalize(() => {
-          if (requestId === this.fetchRequestId) {
-            this.loading = false;
-            this.cdr.markForCheck();
-          }
-        }),
-      )
-      .subscribe({
-        next: ({ endpoints, summary }) => {
-          if (requestId !== this.fetchRequestId) {
-            return;
-          }
+    const rangeB = this.compareDateRangeQuery;
+    if (!rangeB) {
+      this.loading = false;
+      return;
+    }
 
-          this.rowData = normalizeEndpointRows(endpoints);
-          this.summary = this.normalizeSummary(summary);
-          this.loadError = endpointsFailed && this.rowData.length === 0;
-
-          if (summaryFailed && !this.summary) {
-            this.summary = null;
-          }
-
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          if (requestId !== this.fetchRequestId) {
-            return;
-          }
-          this.loadError = true;
-          this.rowData = [];
-          this.summary = null;
-          this.cdr.markForCheck();
-        },
-      });
+    this.fetchComparePeriods(id, rangeA, rangeB, requestId);
   }
 
   onFilterChange(value: string): void {
@@ -339,17 +404,161 @@ export class InsightsData implements OnInit {
   }
 
   refresh(): void {
-    if (this.appId && this.canFetch) {
+    if (this.appId && this.canLoad) {
       this.fetchInsightsData(this.appId);
     }
   }
 
-  private setPresetDates(preset: InsightsDatePreset): void {
+  formatDelta(metric: SummaryCompareMetric): string {
+    return formatCompareDelta(metric.delta, metric.deltaPct);
+  }
+
+  deltaClass(metric: SummaryCompareMetric): string {
+    return deltaTrendClass(metric.delta, metric.lowerIsBetter);
+  }
+
+  private fetchSinglePeriod(
+    id: string,
+    range: InsightsDateRange,
+    requestId: number,
+  ): void {
+    let endpointsFailed = false;
+
+    forkJoin({
+      endpoints: this.insightsService.getInsightsEndpointDetail(id, range).pipe(
+        catchError(() => {
+          endpointsFailed = true;
+          return of([] as unknown);
+        }),
+      ),
+      summary: this.insightsService.getInsightsSummaryDetail(id, range).pipe(
+        catchError(() => of(null)),
+      ),
+    })
+      .pipe(finalize(() => this.finishRequest(requestId)))
+      .subscribe({
+        next: ({ endpoints, summary }) => {
+          if (requestId !== this.fetchRequestId) {
+            return;
+          }
+          this.rowData = normalizeEndpointRows(endpoints);
+          this.summary = this.normalizeSummary(summary);
+          this.compareRowData = [];
+          this.loadError = endpointsFailed && this.rowData.length === 0;
+          this.cdr.markForCheck();
+        },
+        error: () => this.handleFetchError(requestId),
+      });
+  }
+
+  private fetchComparePeriods(
+    id: string,
+    rangeA: InsightsDateRange,
+    rangeB: InsightsDateRange,
+    requestId: number,
+  ): void {
+    let endpointsAFailed = false;
+    let endpointsBFailed = false;
+
+    forkJoin({
+      endpointsA: this.insightsService.getInsightsEndpointDetail(id, rangeA).pipe(
+        catchError(() => {
+          endpointsAFailed = true;
+          return of([] as unknown);
+        }),
+      ),
+      summaryA: this.insightsService.getInsightsSummaryDetail(id, rangeA).pipe(
+        catchError(() => of(null)),
+      ),
+      endpointsB: this.insightsService.getInsightsEndpointDetail(id, rangeB).pipe(
+        catchError(() => {
+          endpointsBFailed = true;
+          return of([] as unknown);
+        }),
+      ),
+      summaryB: this.insightsService.getInsightsSummaryDetail(id, rangeB).pipe(
+        catchError(() => of(null)),
+      ),
+    })
+      .pipe(finalize(() => this.finishRequest(requestId)))
+      .subscribe({
+        next: ({ endpointsA, summaryA, endpointsB, summaryB }) => {
+          if (requestId !== this.fetchRequestId) {
+            return;
+          }
+
+          const rowsA = normalizeEndpointRows(endpointsA);
+          const rowsB = normalizeEndpointRows(endpointsB);
+          this.rowData = [];
+          this.summary = null;
+          this.compareSummaryA = this.normalizeSummary(summaryA);
+          this.compareSummaryB = this.normalizeSummary(summaryB);
+          this.summaryCompareMetrics = buildSummaryCompareMetrics(
+            this.compareSummaryA,
+            this.compareSummaryB,
+          );
+          this.compareRowData = mergeEndpointsForCompare(rowsA, rowsB);
+          this.loadError =
+            (endpointsAFailed || endpointsBFailed) && this.compareRowData.length === 0;
+          this.cdr.markForCheck();
+        },
+        error: () => this.handleFetchError(requestId),
+      });
+  }
+
+  private finishRequest(requestId: number): void {
+    if (requestId === this.fetchRequestId) {
+      this.loading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private handleFetchError(requestId: number): void {
+    if (requestId !== this.fetchRequestId) {
+      return;
+    }
+    this.loadError = true;
+    this.rowData = [];
+    this.summary = null;
+    this.compareRowData = [];
+    this.compareSummaryA = null;
+    this.compareSummaryB = null;
+    this.summaryCompareMetrics = [];
+    this.cdr.markForCheck();
+  }
+
+  private updateCompareColumnDefs(): void {
+    this.compareColumnDefs = buildCompareColumnDefs(this.periodALabel, this.periodBLabel);
+  }
+
+  private isValidRange(start: Date | null, end: Date | null): boolean {
+    return (
+      start != null &&
+      end != null &&
+      startOfDay(start).getTime() <= startOfDay(end).getTime()
+    );
+  }
+
+  private toQuery(start: Date | null, end: Date | null): InsightsDateRange | undefined {
+    if (!this.isValidRange(start, end) || start == null || end == null) {
+      return undefined;
+    }
+    return toApiDateRange(start, end);
+  }
+
+  private setPresetDates(preset: InsightsDatePreset, target: 'primary' | 'compare'): void {
     const { start, end } = rangeForPreset(preset);
-    this.suppressDateChange = true;
-    this.startDate = start;
-    this.endDate = end;
-    this.suppressDateChange = false;
+    if (target === 'primary') {
+      this.suppressDateChange = true;
+      this.startDate = start;
+      this.endDate = end;
+      this.suppressDateChange = false;
+    } else {
+      this.suppressCompareDateChange = true;
+      this.compareStartDate = start;
+      this.compareEndDate = end;
+      this.suppressCompareDateChange = false;
+    }
   }
 
   private resetData(): void {
@@ -357,6 +566,10 @@ export class InsightsData implements OnInit {
     this.loadError = false;
     this.rowData = [];
     this.summary = null;
+    this.compareRowData = [];
+    this.compareSummaryA = null;
+    this.compareSummaryB = null;
+    this.summaryCompareMetrics = [];
   }
 
   private normalizeSummary(

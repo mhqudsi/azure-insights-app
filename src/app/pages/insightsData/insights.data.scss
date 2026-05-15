@@ -70,6 +70,67 @@
   line-height: 1.35;
 }
 
+.period-panel {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 40%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 50%, transparent);
+}
+
+.period-panel-b {
+  border-style: dashed;
+}
+
+.period-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.period-a {
+  background: color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.period-b {
+  background: color-mix(in srgb, #6f42c1 18%, transparent);
+  color: #6f42c1;
+}
+
+.compare-delta.compare-up {
+  color: var(--bs-success, #198754);
+}
+
+.compare-delta.compare-down {
+  color: var(--bs-danger, #dc3545);
+}
+
+.compare-delta.compare-flat {
+  color: var(--bs-secondary, #6c757d);
+}
+
+:host ::ng-deep .ag-grid-host .ag-cell.compare-up {
+  color: var(--bs-success, #198754);
+  font-weight: 600;
+}
+
+:host ::ng-deep .ag-grid-host .ag-cell.compare-down {
+  color: var(--bs-danger, #dc3545);
+  font-weight: 600;
+}
+
+:host ::ng-deep .ag-grid-host .ag-cell.compare-flat {
+  color: var(--bs-secondary, #6c757d);
+}
+
+.ag-grid-compare {
+  height: min(75vh, 680px);
+}
+
 .ag-grid-wrap {
   background: var(--ag-background-color, #fff);
 }

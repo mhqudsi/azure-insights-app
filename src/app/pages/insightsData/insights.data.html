@@ -6,8 +6,7 @@
       </div>
       <mat-card-title class="mb-0">Endpoint metrics</mat-card-title>
       <mat-card-subtitle>
-        Pick a date range (or use Today / Yesterday / Week). The API receives
-        <code>fromDate</code> and <code>toDate</code> as UTC ISO timestamps.
+        View metrics for a date range, or enable <strong>Compare</strong> to see two periods side by side (summary and per-endpoint deltas).
       </mat-card-subtitle>
     </mat-card-header>
 
@@ -27,77 +26,100 @@
       </div>
 
       <ng-container *ngIf="appId">
-        <div class="toolbar d-flex flex-column flex-xl-row flex-wrap gap-3 align-items-stretch align-items-xl-end mb-3">
-          <div class="font-monospace small text-body-secondary app-id-pill px-3 py-2 rounded-pill border align-self-xl-center">
+        <div class="toolbar d-flex flex-wrap gap-3 align-items-center mb-3">
+          <div class="font-monospace small text-body-secondary app-id-pill px-3 py-2 rounded-pill border">
             App id: <strong>{{ appId }}</strong>
           </div>
+          <mat-slide-toggle
+            [checked]="compareMode"
+            (change)="onCompareModeChange($event.checked)"
+            color="primary">
+            Compare two periods
+          </mat-slide-toggle>
+        </div>
 
-          <mat-button-toggle-group
-            class="date-presets align-self-xl-center"
-            [value]="activePreset"
-            (change)="onPresetChange($event.value)"
-            aria-label="Quick date range">
-            <mat-button-toggle *ngFor="let p of datePresets" [value]="p.value">
-              {{ p.label }}
-            </mat-button-toggle>
-          </mat-button-toggle-group>
-
-          <mat-form-field appearance="outline" class="toolbar-date-range" subscriptSizing="dynamic">
-            <mat-label>Date range</mat-label>
-            <mat-date-range-input [rangePicker]="rangePicker" [max]="maxSelectableDate">
-              <input
-                matStartDate
-                placeholder="Start date"
-                [(ngModel)]="startDate"
-                (dateChange)="onManualDateChange()" />
-              <input
-                matEndDate
-                placeholder="End date"
-                [(ngModel)]="endDate"
-                (dateChange)="onManualDateChange()" />
-            </mat-date-range-input>
-            <mat-datepicker-toggle matIconSuffix [for]="rangePicker"></mat-datepicker-toggle>
-            <mat-date-range-picker #rangePicker></mat-date-range-picker>
-          </mat-form-field>
-
-          <div *ngIf="canFetch && dateRangeQuery" class="date-preview small text-body-secondary align-self-xl-center pb-2 pb-xl-0">
-            <span class="d-block d-xl-inline">From <code class="user-select-all">{{ dateRangeQuery.fromDate }}</code></span>
-            <span class="d-none d-xl-inline mx-1">→</span>
-            <span class="d-block d-xl-inline">To <code class="user-select-all">{{ dateRangeQuery.toDate }}</code></span>
+        <div class="period-panel mb-3">
+          <div class="period-panel-title small text-uppercase fw-semibold text-body-secondary mb-2">
+            {{ compareMode ? 'Period A' : 'Date range' }}
+            <span *ngIf="compareMode && canFetch" class="text-lowercase fw-normal ms-1">({{ periodALabel }})</span>
           </div>
+          <div class="d-flex flex-column flex-xl-row flex-wrap gap-3 align-items-stretch align-items-xl-end">
+            <mat-button-toggle-group
+              class="date-presets"
+              [value]="activePreset"
+              (change)="onPresetChange($event.value)"
+              aria-label="Period A quick range">
+              <mat-button-toggle *ngFor="let p of datePresets" [value]="p.value">{{ p.label }}</mat-button-toggle>
+            </mat-button-toggle-group>
 
+            <mat-form-field appearance="outline" class="toolbar-date-range" subscriptSizing="dynamic">
+              <mat-label>{{ compareMode ? 'Period A dates' : 'Date range' }}</mat-label>
+              <mat-date-range-input [rangePicker]="rangePickerA" [max]="maxSelectableDate">
+                <input matStartDate placeholder="Start" [(ngModel)]="startDate" (dateChange)="onManualDateChange()" />
+                <input matEndDate placeholder="End" [(ngModel)]="endDate" (dateChange)="onManualDateChange()" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="rangePickerA"></mat-datepicker-toggle>
+              <mat-date-range-picker #rangePickerA></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div *ngIf="compareMode" class="period-panel period-panel-b mb-3">
+          <div class="period-panel-title small text-uppercase fw-semibold text-body-secondary mb-2">
+            Period B
+            <span *ngIf="canFetchCompare" class="text-lowercase fw-normal ms-1">({{ periodBLabel }})</span>
+          </div>
+          <div class="d-flex flex-column flex-xl-row flex-wrap gap-3 align-items-stretch align-items-xl-end">
+            <mat-button-toggle-group
+              class="date-presets"
+              [value]="compareActivePreset"
+              (change)="onComparePresetChange($event.value)"
+              aria-label="Period B quick range">
+              <mat-button-toggle *ngFor="let p of datePresets" [value]="p.value">{{ p.label }}</mat-button-toggle>
+            </mat-button-toggle-group>
+
+            <mat-form-field appearance="outline" class="toolbar-date-range" subscriptSizing="dynamic">
+              <mat-label>Period B dates</mat-label>
+              <mat-date-range-input [rangePicker]="rangePickerB" [max]="maxSelectableDate">
+                <input matStartDate placeholder="Start" [(ngModel)]="compareStartDate" (dateChange)="onCompareManualDateChange()" />
+                <input matEndDate placeholder="End" [(ngModel)]="compareEndDate" (dateChange)="onCompareManualDateChange()" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="rangePickerB"></mat-datepicker-toggle>
+              <mat-date-range-picker #rangePickerB></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="toolbar d-flex flex-column flex-xl-row flex-wrap gap-3 align-items-stretch align-items-xl-end mb-3">
           <mat-form-field appearance="outline" class="toolbar-field flex-grow-1" subscriptSizing="dynamic">
             <mat-label>Quick filter</mat-label>
             <mat-icon matPrefix class="field-prefix">search</mat-icon>
-            <input
-              matInput
-              [ngModel]="filterText"
-              (ngModelChange)="onFilterChange($event)"
-              placeholder="Filter any column…" />
-            <button
-              mat-icon-button
-              matSuffix
-              type="button"
-              aria-label="Clear search"
-              *ngIf="filterText"
-              (click)="clearFilter()">
+            <input matInput [ngModel]="filterText" (ngModelChange)="onFilterChange($event)" placeholder="Filter any column…" />
+            <button mat-icon-button matSuffix type="button" aria-label="Clear search" *ngIf="filterText" (click)="clearFilter()">
               <mat-icon>close</mat-icon>
             </button>
           </mat-form-field>
 
-          <button mat-stroked-button type="button" color="primary" (click)="refresh()" [disabled]="loading || !canFetch">
+          <button mat-stroked-button type="button" color="primary" (click)="refresh()" [disabled]="loading || !canLoad">
             <mat-icon class="me-1">refresh</mat-icon>
             Refresh
           </button>
         </div>
 
-        <div *ngIf="appId && !canFetch && !loading" class="alert alert-info mb-3" role="status">
-          Select a <strong>start</strong> and <strong>end</strong> date, or choose <strong>Today</strong>, <strong>Yesterday</strong>, or <strong>Week</strong>.
+        <div *ngIf="appId && !canLoad && !loading" class="alert alert-info mb-3" role="status">
+          <ng-container *ngIf="!compareMode">
+            Select a <strong>start</strong> and <strong>end</strong> date for Period A, or use a quick preset.
+          </ng-container>
+          <ng-container *ngIf="compareMode">
+            Select valid date ranges for <strong>both</strong> periods to compare.
+          </ng-container>
         </div>
 
         <div *ngIf="loading" class="loading-panel d-flex flex-column align-items-center justify-content-center py-5">
           <mat-progress-spinner mode="indeterminate" diameter="48"></mat-progress-spinner>
-          <p class="mt-3 text-body-secondary mb-0">Loading summary and endpoint details…</p>
+          <p class="mt-3 text-body-secondary mb-0">
+            {{ compareMode ? 'Loading comparison data…' : 'Loading summary and endpoint details…' }}
+          </p>
         </div>
 
         <div *ngIf="!loading && loadError" class="alert alert-danger" role="alert">
@@ -105,68 +127,60 @@
         </div>
 
         <div
-          *ngIf="!loading && !loadError && canFetch && summary"
+          *ngIf="!compareMode && !loading && !loadError && canFetch && summary"
           class="summary-cards row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
-          <div class="col">
+          <div class="col" *ngFor="let card of [
+            { label: 'Total requests', value: summary.totalRequests, class: '' },
+            { label: 'Success', value: summary.successRequests, class: 'text-success' },
+            { label: 'Failed', value: summary.failedRequests, class: summary.failedRequests > 0 ? 'text-danger' : '' },
+            { label: 'Avg response', value: summary.averageResponseMs, suffix: ' ms' },
+            { label: 'Min response', value: summary.minResponseMs, suffix: ' ms' },
+            { label: 'Max response', value: summary.maxResponseMs, suffix: ' ms' }
+          ]">
             <mat-card class="summary-card h-100" appearance="outlined">
               <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Total requests</div>
-                <div class="summary-value fw-semibold">{{ summary.totalRequests | number }}</div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-          <div class="col">
-            <mat-card class="summary-card h-100" appearance="outlined">
-              <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Success</div>
-                <div class="summary-value fw-semibold text-success">{{ summary.successRequests | number }}</div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-          <div class="col">
-            <mat-card class="summary-card h-100" appearance="outlined">
-              <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Failed</div>
-                <div class="summary-value fw-semibold" [class.text-danger]="summary.failedRequests > 0">
-                  {{ summary.failedRequests | number }}
+                <div class="summary-label text-body-secondary small">{{ card.label }}</div>
+                <div class="summary-value fw-semibold" [ngClass]="card.class">
+                  {{ card.value | number }}{{ card.suffix || '' }}
                 </div>
               </mat-card-content>
             </mat-card>
           </div>
-          <div class="col">
-            <mat-card class="summary-card h-100" appearance="outlined">
+        </div>
+
+        <div
+          *ngIf="compareMode && !loading && !loadError && canLoad && summaryCompareMetrics.length"
+          class="compare-summary row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4">
+          <div class="col" *ngFor="let m of summaryCompareMetrics">
+            <mat-card class="summary-card compare-summary-card h-100" appearance="outlined">
               <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Avg response</div>
-                <div class="summary-value fw-semibold">{{ summary.averageResponseMs | number }} ms</div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-          <div class="col">
-            <mat-card class="summary-card h-100" appearance="outlined">
-              <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Min response</div>
-                <div class="summary-value fw-semibold">{{ summary.minResponseMs | number }} ms</div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-          <div class="col">
-            <mat-card class="summary-card h-100" appearance="outlined">
-              <mat-card-content class="py-3">
-                <div class="summary-label text-body-secondary small">Max response</div>
-                <div class="summary-value fw-semibold">{{ summary.maxResponseMs | number }} ms</div>
+                <div class="summary-label text-body-secondary small">{{ m.label }}</div>
+                <div class="compare-values d-flex flex-wrap gap-3 align-items-baseline mt-1">
+                  <div>
+                    <span class="period-tag period-a">A</span>
+                    <span class="fw-semibold">{{ m.valueA | number }}{{ m.unit ? ' ' + m.unit : '' }}</span>
+                  </div>
+                  <div>
+                    <span class="period-tag period-b">B</span>
+                    <span class="fw-semibold">{{ m.valueB | number }}{{ m.unit ? ' ' + m.unit : '' }}</span>
+                  </div>
+                </div>
+                <div class="compare-delta small fw-semibold mt-2" [ngClass]="deltaClass(m)">
+                  Δ {{ formatDelta(m) }}
+                </div>
               </mat-card-content>
             </mat-card>
           </div>
         </div>
 
-        <div *ngIf="!loading && !loadError && canFetch && rowData.length === 0" class="empty-state text-center py-5 border rounded-3 bg-body-tertiary">
+        <div *ngIf="!loading && !loadError && canLoad && !hasGridData" class="empty-state text-center py-5 border rounded-3 bg-body-tertiary">
           <mat-icon class="empty-state-icon text-body-secondary" aria-hidden="true">table_rows</mat-icon>
-          <p class="mb-0 text-body-secondary">No rows returned for this application and date range.</p>
+          <p class="mb-0 text-body-secondary">No rows returned for the selected period(s).</p>
         </div>
 
         <div
           class="ag-grid-wrap rounded-3 overflow-hidden border"
-          *ngIf="isBrowser && !loading && !loadError && canFetch && rowData.length > 0">
+          *ngIf="isBrowser && !compareMode && !loading && !loadError && canFetch && rowData.length > 0">
           <ag-grid-angular
             class="ag-theme-quartz ag-grid-host"
             [rowData]="rowData"
@@ -179,9 +193,23 @@
             [enableCellTextSelection]="true"
             [quickFilterText]="filterText" />
         </div>
+
+        <div
+          class="ag-grid-wrap rounded-3 overflow-hidden border"
+          *ngIf="isBrowser && compareMode && !loading && !loadError && canLoad && compareRowData.length > 0">
+          <ag-grid-angular
+            class="ag-theme-quartz ag-grid-host ag-grid-compare"
+            [rowData]="compareRowData"
+            [columnDefs]="compareColumnDefs"
+            [defaultColDef]="defaultColDef"
+            [pagination]="true"
+            [paginationPageSize]="10"
+            [paginationPageSizeSelector]="paginationPageSizes"
+            [rowClassRules]="compareRowClassRules"
+            [enableCellTextSelection]="true"
+            [quickFilterText]="filterText" />
+        </div>
       </ng-container>
     </mat-card-content>
   </mat-card>
 </div>
-
-
