@@ -9,42 +9,44 @@ permissions:
   id-token: write
   contents: read
 
-concurrency:
-  group: azureinsightsmonitoringui-deploy
-  cancel-in-progress: true
+env:
+  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui
+  NODE_VERSION: 24
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout source
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
 
+      # Install dependencies
       - name: Install Dependencies
         run: npm ci
 
+      # Build Angular
       - name: Build Angular App
-        run: npm run build -- --configuration production --base-href /
+        run: npm run build -- --configuration production
 
-      - name: Verify Build Output
-        run: ls -la dist/azure-insights-app/browser
-
-      - name: Azure Login (OIDC)
+      # Azure Login
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Deploy
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: azureinsightsmonitoringui
-          package: dist/azure-insights-app/browser
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: dist/azure-insights-app
