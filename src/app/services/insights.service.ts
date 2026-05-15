@@ -20,13 +20,18 @@ export interface InsightsSummary{
   failedRequests: number;
   averageResponseMs: number;
   minResponseMs: number;
-  maxResponseMs: string;
+  maxResponseMs: number;
 }
 
 export interface AzureSubscription {
   id?: string;
   displayName?: string;
   state?: string;
+}
+
+export interface InsightsDateRange {
+  fromDate: string;
+  toDate: string;
 }
 
 export interface EndpointDetails {
@@ -61,26 +66,29 @@ export class InsightsService {
     return this.http.get<AzureSubscription[]>(`${this.apiBase()}${AppConst.API.Insights.allSubscription}`);
   }
 
-  /**
-   * @param duration e.g. `1m`, `2h`, `3d` — passed as the `duration` query parameter when provided.
-   */
-  getInsightsEndpointDetail(id: string, duration?: string): Observable<EndpointDetails[]> {
-    let params = new HttpParams().set('appId', id);
-    if (duration != null && duration !== '') {
-      params = params.set('duration', duration);
-    }
+  getInsightsEndpointDetail(
+    id: string,
+    range: InsightsDateRange,
+  ): Observable<EndpointDetails[]> {
+    const params = new HttpParams()
+      .set('appId', id)
+      .set('fromDate', range.fromDate)
+      .set('toDate', range.toDate);
     return this.http.get<EndpointDetails[]>(
       `${this.apiBase()}${AppConst.API.Insights.endpoints}`,
       { params },
     );
   }
 
-  getInsightsSummaryDetail(id: string, duration?: string): Observable<InsightsSummary[]> {
-    let params = new HttpParams().set('appId', id);
-    if (duration != null && duration !== '') {
-      params = params.set('duration', duration);
-    }
-    return this.http.get<InsightsSummary[]>(
+  getInsightsSummaryDetail(
+    id: string,
+    range: InsightsDateRange,
+  ): Observable<InsightsSummary> {
+    const params = new HttpParams()
+      .set('appId', id)
+      .set('fromDate', range.fromDate)
+      .set('toDate', range.toDate);
+    return this.http.get<InsightsSummary>(
       `${this.apiBase()}${AppConst.API.Insights.summary}`,
       { params },
     );

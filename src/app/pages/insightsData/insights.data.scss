@@ -23,9 +23,18 @@
   min-width: 220px;
 }
 
-.toolbar-duration {
-  min-width: 140px;
-  max-width: 200px;
+.toolbar-date-range {
+  min-width: 260px;
+  max-width: 340px;
+}
+
+.date-presets {
+  flex-wrap: wrap;
+}
+
+.date-preview code {
+  font-size: 0.75rem;
+  word-break: break-all;
 }
 
 .field-prefix {

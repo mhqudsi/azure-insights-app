@@ -6,6 +6,9 @@ export const AppConst = {
         endpoints: '/api/insights/endpoints',
         allinsights: '/api/insights/allinsights',
         allSubscription: '/api/insights/allsubscription'
+    },
+    Auth : {
+      gettokken : '/api/auth/gettokken'
     }
   },
 
