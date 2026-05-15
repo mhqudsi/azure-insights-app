@@ -1,4 +1,4 @@
-name: Build and Deploy Angular SSR to Azure Web App
+name: Build and Deploy Angular to Azure Web App
 
 on:
   push:
@@ -13,12 +13,6 @@ concurrency:
   group: azureinsightsmonitoringui-deploy
   cancel-in-progress: true
 
-env:
-  AZURE_WEBAPP_NAME: azureinsightsmonitoringui
-  # Resource group for the UI App Service (used to set startup + app settings).
-  AZURE_RESOURCE_GROUP: insights-rg
-  NODE_VERSION: '22'
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -30,29 +24,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          node-version: 22
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Angular App (production SSR)
+      - name: Build Angular App
         run: npm run build -- --configuration production --base-href /
 
-      - name: Prepare SSR deployment package
-        run: node .github/scripts/prepare-azure-deploy.mjs
-
-      - name: Verify deployment package
-        run: |
-          set -e
-          echo "=== deploy-package layout ==="
-          ls -la deploy-package
-          ls -la deploy-package/server
-          ls -la deploy-package/browser | head -20
-          test -f deploy-package/server/server.mjs
-          test -f deploy-package/package.json
-          test -d deploy-package/node_modules
-          node -e "import {readFileSync} from 'node:fs'; const p=JSON.parse(readFileSync('deploy-package/package.json','utf8')); console.log('start:', p.scripts.start);"
+      - name: Verify Build Output
+        run: ls -la dist/azure-insights-app/browser
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -61,20 +43,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Configure App Service for pre-built SSR package
-        run: |
-          az webapp config appsettings set \
-            --name "${{ env.AZURE_WEBAPP_NAME }}" \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
-
-          az webapp config set \
-            --name "${{ env.AZURE_WEBAPP_NAME }}" \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --startup-file "node server/server.mjs"
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: deploy-package
+          app-name: azureinsightsmonitoringui
+          package: dist/azure-insights-app/browser
