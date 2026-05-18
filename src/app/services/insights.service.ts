@@ -44,6 +44,18 @@ export interface EndpointDetails {
   lastCalled: string;
 }
 
+export interface TelemetryLogEntry {
+  timestamp: string;
+  telemetryType: string;
+  name: string;
+  message: string;
+  success?: boolean | null;
+  resultCode?: string | null;
+  durationMs?: number | null;
+  operationId?: string | null;
+  url?: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -94,6 +106,21 @@ export class InsightsService {
     );
   }
 
+  getEndpointLogs(
+    appId: string,
+    endpoint: string,
+    range: InsightsDateRange,
+  ): Observable<TelemetryLogEntry[]> {
+    const params = new HttpParams()
+      .set('appId', appId)
+      .set('endpoint', endpoint)
+      .set('fromDate', range.fromDate)
+      .set('toDate', range.toDate);
+    return this.http.get<TelemetryLogEntry[]>(
+      `${this.apiBase()}${AppConst.API.Insights.logs}`,
+      { params },
+    );
+  }
 
   getInsightById(id: number): Observable<Insight> {
     return this.http.get<Insight>(`${this.apiBase()}${AppConst.API.Insights.summary}/${id}`);

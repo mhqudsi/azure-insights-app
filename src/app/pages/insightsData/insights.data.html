@@ -191,7 +191,8 @@
             [paginationPageSizeSelector]="paginationPageSizes"
             [rowClassRules]="rowClassRules"
             [enableCellTextSelection]="true"
-            [quickFilterText]="filterText" />
+            [quickFilterText]="filterText"
+            (cellClicked)="onCellClicked($event)" />
         </div>
 
         <div

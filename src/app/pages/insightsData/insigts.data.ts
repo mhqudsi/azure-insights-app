@@ -12,7 +12,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -20,6 +20,7 @@ import {
   ColGroupDef,
   ModuleRegistry,
   RowClassRules,
+  CellClickedEvent,
 } from 'ag-grid-community';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -86,6 +87,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export class InsightsData implements OnInit {
   private insightsService = inject(InsightsService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private injector = inject(Injector);
   private destroyRef = inject(DestroyRef);
   private cdr = inject(ChangeDetectorRef);
@@ -135,6 +137,16 @@ export class InsightsData implements OnInit {
       flex: 2,
       minWidth: 180,
       filter: 'agTextColumnFilter',
+    },
+    {
+      colId: 'actions',
+      headerName: 'Logs',
+      maxWidth: 120,
+      sortable: false,
+      filter: false,
+      floatingFilter: false,
+      cellRenderer: () =>
+        '<button type="button" class="btn btn-sm btn-outline-primary view-logs-btn">View logs</button>',
     },
     {
       field: 'totalRequests',
@@ -407,6 +419,33 @@ export class InsightsData implements OnInit {
     if (this.appId && this.canLoad) {
       this.fetchInsightsData(this.appId);
     }
+  }
+
+  onCellClicked(event: CellClickedEvent<EndpointDetails>): void {
+    if (this.compareMode || event.column.getColId() !== 'actions' || !event.data?.endpointName) {
+      return;
+    }
+    this.openEndpointLogs(event.data);
+  }
+
+  openEndpointLogs(row: EndpointDetails): void {
+    if (!this.appId || !row.endpointName) {
+      return;
+    }
+
+    const range = this.dateRangeQuery;
+    if (!range) {
+      return;
+    }
+
+    void this.router.navigate(['/endpoint-logs'], {
+      queryParams: {
+        id: this.appId,
+        endpoint: row.endpointName,
+        fromDate: range.fromDate,
+        toDate: range.toDate,
+      },
+    });
   }
 
   formatDelta(metric: SummaryCompareMetric): string {

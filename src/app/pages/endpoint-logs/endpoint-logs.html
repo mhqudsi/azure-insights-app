@@ -1,0 +1,152 @@
+<div class="endpoint-logs-page container-fluid px-3 px-lg-4 py-4">
+  <mat-card class="page-card" appearance="outlined">
+    <mat-card-header class="page-card-header align-items-start flex-wrap gap-2 pb-2">
+      <div mat-card-avatar class="header-avatar d-inline-flex align-items-center justify-content-center">
+        <mat-icon aria-hidden="true">receipt_long</mat-icon>
+      </div>
+      <mat-card-title class="mb-0">Endpoint logs</mat-card-title>
+      <mat-card-subtitle class="endpoint-subtitle">
+        <span class="text-body-secondary">Call:</span>
+        <code class="endpoint-name">{{ endpointName || '—' }}</code>
+        <span *ngIf="periodLabel" class="text-body-secondary ms-2">· {{ periodLabel }}</span>
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content class="pt-4">
+      <div class="toolbar d-flex flex-wrap gap-2 align-items-center mb-3">
+        <a
+          mat-stroked-button
+          color="primary"
+          [routerLink]="['/InsightsData']"
+          [queryParams]="backQueryParams">
+          <mat-icon class="me-1">arrow_back</mat-icon>
+          Back to metrics
+        </a>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="refresh()"
+          [disabled]="loading || !canLoad">
+          <mat-icon class="me-1">refresh</mat-icon>
+          Load logs
+        </button>
+      </div>
+
+      <div *ngIf="!appId || !endpointName" class="alert alert-info" role="status">
+        Open this screen from <strong>View logs</strong> on the metrics table, or add
+        <code>id</code> and <code>endpoint</code> to the URL.
+      </div>
+
+      <ng-container *ngIf="appId && endpointName">
+        <div class="period-panel mb-3">
+          <div class="period-panel-title small text-uppercase fw-semibold text-body-secondary mb-2">
+            Time window
+          </div>
+          <div class="d-flex flex-column flex-xl-row flex-wrap gap-3 align-items-stretch align-items-xl-end">
+            <mat-button-toggle-group
+              class="date-presets"
+              [value]="activePreset"
+              (change)="onPresetChange($event.value)"
+              aria-label="Quick range">
+              <mat-button-toggle *ngFor="let p of datePresets" [value]="p.value">
+                {{ p.label }}
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+
+            <mat-form-field appearance="outline" class="toolbar-date-range" subscriptSizing="dynamic">
+              <mat-label>Date range</mat-label>
+              <mat-date-range-input [rangePicker]="rangePicker" [max]="maxSelectableDate">
+                <input
+                  matStartDate
+                  placeholder="Start"
+                  [(ngModel)]="startDate"
+                  (dateChange)="onManualDateChange()" />
+                <input
+                  matEndDate
+                  placeholder="End"
+                  [(ngModel)]="endDate"
+                  (dateChange)="onManualDateChange()" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="rangePicker"></mat-datepicker-toggle>
+              <mat-date-range-picker #rangePicker></mat-date-range-picker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="toolbar-field flex-grow-1" subscriptSizing="dynamic">
+              <mat-label>Filter logs</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput [(ngModel)]="filterText" placeholder="Message, type, code…" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div *ngIf="!canLoad && !loading" class="alert alert-info mb-3" role="status">
+          Select a valid start and end date, then click <strong>Load logs</strong>.
+        </div>
+
+        <div *ngIf="loading" class="loading-panel d-flex flex-column align-items-center py-5">
+          <mat-progress-spinner mode="indeterminate" diameter="48"></mat-progress-spinner>
+          <p class="mt-3 text-body-secondary mb-0">Loading telemetry…</p>
+        </div>
+
+        <div *ngIf="!loading && loadError" class="alert alert-danger" role="alert">
+          Could not load logs. Check the API and try again.
+        </div>
+
+        <div
+          *ngIf="!loading && !loadError && canLoad && filteredLogs.length === 0"
+          class="empty-state text-center py-5 border rounded-3 bg-body-tertiary">
+          <mat-icon class="empty-state-icon text-body-secondary">description</mat-icon>
+          <p class="mb-0 text-body-secondary">No logs for this endpoint in the selected window.</p>
+        </div>
+
+        <div *ngIf="!loading && !loadError && filteredLogs.length > 0" class="log-timeline">
+          <div
+            class="log-entry"
+            *ngFor="let log of filteredLogs; trackBy: trackLog"
+            [class.log-entry-failed]="log.success === false"
+            [class.log-entry-exception]="log.telemetryType === 'exception'">
+            <div class="log-entry-rail">
+              <span class="log-entry-dot" [ngClass]="typeChipClass(log.telemetryType)"></span>
+            </div>
+            <mat-card class="log-entry-card" appearance="outlined">
+              <mat-card-content class="py-3">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                  <mat-chip-set>
+                    <mat-chip [ngClass]="typeChipClass(log.telemetryType)">
+                      <mat-icon matChipAvatar>{{ typeIcon(log.telemetryType) }}</mat-icon>
+                      {{ log.telemetryType || 'unknown' }}
+                    </mat-chip>
+                  </mat-chip-set>
+                  <span class="log-time text-body-secondary small">{{ formatTimestamp(log.timestamp) }}</span>
+                </div>
+                <div class="log-message fw-medium mb-2">{{ log.message || log.name || '—' }}</div>
+                <div class="log-meta row g-2 small text-body-secondary">
+                  <div class="col-auto" *ngIf="log.resultCode">
+                    <span class="meta-label">Code</span> {{ log.resultCode }}
+                  </div>
+                  <div class="col-auto">
+                    <span class="meta-label">Duration</span> {{ formatDuration(log.durationMs) }}
+                  </div>
+                  <div class="col-auto">
+                    <span class="meta-label">Status</span> {{ successLabel(log.success) }}
+                  </div>
+                  <div class="col-12" *ngIf="log.url">
+                    <span class="meta-label">URL</span>
+                    <span class="log-url text-break">{{ log.url }}</span>
+                  </div>
+                  <div class="col-12" *ngIf="log.operationId">
+                    <span class="meta-label">Operation</span>
+                    <code class="small">{{ log.operationId }}</code>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </ng-container>
+    </mat-card-content>
+  </mat-card>
+</div>

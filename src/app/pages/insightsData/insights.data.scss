@@ -3,6 +3,10 @@
   margin: 0 auto;
 }
 
+:host ::ng-deep .view-logs-btn {
+  white-space: nowrap;
+}
+
 .page-card {
   border-radius: 1rem;
 }
