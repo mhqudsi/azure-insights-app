@@ -11,32 +11,41 @@ permissions:
 
 env:
   AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui
-  NODE_VERSION: 24
+  NODE_VERSION: 22
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout source
+      # STEP 1: Checkout source
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Setup Node
+      # STEP 2: Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-      # Install dependencies
+      # STEP 3: Clean old build
+      - name: Clean Dist Folder
+        run: rm -rf dist
+
+      # STEP 4: Install dependencies
       - name: Install Dependencies
         run: npm ci
 
-      # Build Angular
+      # STEP 5: Build Angular Production
       - name: Build Angular App
-        run: npm run build -- --configuration production
+        run: npm run build -- --configuration production --base-href /
 
-      # Azure Login
+      # STEP 6: Verify Build Output
+      - name: Verify Dist Structure
+        run: ls -R dist
+
+      # STEP 7: Azure Login
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -44,9 +53,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Deploy
+      # STEP 8: Deploy ONLY browser/static files
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: dist/azure-insights-app
+          package: dist/azure-insights-app/browser
