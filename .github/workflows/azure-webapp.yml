@@ -1,4 +1,4 @@
-name: Build and Deploy Angular to Azure Web App
+name: Build and Deploy Angular SSR to Azure Web App
 
 on:
   push:
@@ -29,23 +29,35 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # STEP 3: Clean old build
-      - name: Clean Dist Folder
+      # STEP 3: Clean previous build
+      - name: Clean Old Build
         run: rm -rf dist
 
       # STEP 4: Install dependencies
       - name: Install Dependencies
         run: npm ci
 
-      # STEP 5: Build Angular Production
-      - name: Build Angular App
-        run: npm run build -- --configuration production --base-href /
+      # STEP 5: Build Angular SSR
+      # Requires package.json build script for SSR (usually "build": "ng build")
+      # If using Angular Universal, this should generate browser + server folders
+      - name: Build Angular SSR App
+        run: npm run build
 
-      # STEP 6: Verify Build Output
+      # STEP 6: Verify output
       - name: Verify Dist Structure
         run: ls -R dist
 
-      # STEP 7: Azure Login
+      # STEP 7: Prepare deployment package
+      # Azure needs package root containing server.js + browser folder
+      - name: Prepare SSR Package
+        run: |
+          mkdir deploy
+          cp package.json deploy/
+          cp package-lock.json deploy/
+          cp -R dist/azure-insights-app/browser deploy/browser
+          cp -R dist/azure-insights-app/server deploy/server
+
+      # STEP 8: Azure Login
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -53,9 +65,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # STEP 8: Deploy ONLY browser/static files
+      # STEP 9: Deploy SSR package
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: dist/azure-insights-app/browser
+          package: deploy
