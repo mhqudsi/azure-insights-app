@@ -1,78 +1,27 @@
-<<<<<<< HEAD
 name: Build and Deploy Angular Container to Azure Web App
-=======
-name: Build and Deploy Angular SSR to Azure Web App
->>>>>>> ad9cf14e6825764fb34dfeeaf1ebf4199d8e2e99
 
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 env:
-<<<<<<< HEAD
-  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui02
-  IMAGE_NAME: azure-insights-ui
-=======
   AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui
-  NODE_VERSION: 22
->>>>>>> ad9cf14e6825764fb34dfeeaf1ebf4199d8e2e99
+  IMAGE_NAME: azure-insights-ui
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-<<<<<<< HEAD
       - name: Checkout Code
         uses: actions/checkout@v4
 
-=======
-      # STEP 1: Checkout source
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # STEP 2: Setup Node
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      # STEP 3: Clean previous build
-      - name: Clean Old Build
-        run: rm -rf dist
-
-      # STEP 4: Install dependencies
-      - name: Install Dependencies
-        run: npm ci
-
-      # STEP 5: Build Angular SSR
-      # Requires package.json build script for SSR (usually "build": "ng build")
-      # If using Angular Universal, this should generate browser + server folders
-      - name: Build Angular SSR App
-        run: npm run build
-
-      # STEP 6: Verify output
-      - name: Verify Dist Structure
-        run: ls -R dist
-
-      # STEP 7: Prepare deployment package
-      # Azure needs package root containing server.js + browser folder
-      - name: Prepare SSR Package
-        run: |
-          mkdir deploy
-          cp package.json deploy/
-          cp package-lock.json deploy/
-          cp -R dist/azure-insights-app/browser deploy/browser
-          cp -R dist/azure-insights-app/server deploy/server
-
-      # STEP 8: Azure Login
->>>>>>> ad9cf14e6825764fb34dfeeaf1ebf4199d8e2e99
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -80,7 +29,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-<<<<<<< HEAD
       - name: Resolve ACR login server
         id: acr
         shell: bash
@@ -105,13 +53,14 @@ jobs:
           LOGIN_SERVER: ${{ steps.acr.outputs.login_server }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE="${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
-          docker build -t "$IMAGE" -t "${LOGIN_SERVER}/${IMAGE_NAME}:latest" .
+          IMAGE="${LOGIN_SERVER}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+          docker build -t "$IMAGE" -t "${LOGIN_SERVER}/${{ env.IMAGE_NAME }}:latest" .
           docker push "$IMAGE"
-          docker push "${LOGIN_SERVER}/${IMAGE_NAME}:latest"
+          docker push "${LOGIN_SERVER}/${{ env.IMAGE_NAME }}:latest"
           echo "DEPLOY_IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
-      - name: Configure Web App container settings
+      - name: Resolve resource group
+        id: rg
         shell: bash
         run: |
           RG="${{ vars.AZURE_RESOURCE_GROUP }}"
@@ -125,21 +74,25 @@ jobs:
             echo "::error::Could not resolve resource group. Set AZURE_RESOURCE_GROUP variable or secret."
             exit 1
           fi
+          echo "name=$RG" >> "$GITHUB_OUTPUT"
           echo "AZURE_RESOURCE_GROUP=$RG" >> "$GITHUB_ENV"
+
+      - name: Configure Web App container settings
+        run: |
           az webapp config appsettings set \
-            --resource-group "$RG" \
+            --resource-group "${{ steps.rg.outputs.name }}" \
             --name "${{ env.AZURE_WEBAPP_NAME }}" \
             --settings WEBSITES_PORT=8080 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
 
       - name: Grant Web App managed identity pull access to ACR
-        shell: bash
+        continue-on-error: true
         run: |
           az webapp identity assign \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --resource-group "${{ steps.rg.outputs.name }}" \
             --name "${{ env.AZURE_WEBAPP_NAME }}" \
             --output none
           PRINCIPAL_ID=$(az webapp identity show \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --resource-group "${{ steps.rg.outputs.name }}" \
             --name "${{ env.AZURE_WEBAPP_NAME }}" \
             --query principalId -o tsv)
           ACR_ID=$(az acr show --name "${{ steps.acr.outputs.registry_name }}" --query id -o tsv)
@@ -154,12 +107,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          resource-group-name: ${{ steps.rg.outputs.name }}
           images: ${{ env.DEPLOY_IMAGE }}
-=======
-      # STEP 9: Deploy SSR package
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: dist/azure-insights-app/browser
->>>>>>> ad9cf14e6825764fb34dfeeaf1ebf4199d8e2e99
