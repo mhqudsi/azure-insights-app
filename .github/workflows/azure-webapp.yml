@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: azureinsightsmonitoring
+  AZURE_WEBAPP_NAME: azureinsightsmonitoringui
   NODE_VERSION: 24
 
 jobs:
