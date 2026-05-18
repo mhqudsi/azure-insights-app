@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui
+  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui02
   IMAGE_NAME: azure-insights-ui
 
 jobs:
@@ -33,10 +33,10 @@ jobs:
         id: acr
         shell: bash
         run: |
-          if [ -n "${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}" ]; then
-            REGISTRY_NAME="${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}"
-          elif [ -n "${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }}" ]; then
-            REGISTRY_NAME="${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }}"
+          if [ -n "angularregistry786" ]; then
+            REGISTRY_NAME="angularregistry786"
+          elif [ -n "angularregistry786" ]; then
+            REGISTRY_NAME="angularregistry786"
           else
             echo "::error::Set repository variable or secret AZURE_CONTAINER_REGISTRY_NAME (ACR name only, e.g. myregistry)."
             exit 1
