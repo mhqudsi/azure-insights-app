@@ -1,4 +1,4 @@
-name: Build and Deploy Angular to Azure Web App
+name: Build and Deploy Angular Container to Azure Web App
 
 on:
   push:
@@ -10,33 +10,17 @@ permissions:
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui
-  NODE_VERSION: 24
+  AZURE_WEBAPP_NAME: azureinsightsmonitoring-ui02
+  IMAGE_NAME: azure-insights-ui
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout source
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Setup Node
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      # Install dependencies
-      - name: Install Dependencies
-        run: npm ci
-
-      # Build Angular
-      - name: Build Angular App
-        run: npm run build -- --configuration production
-
-      # Azure Login
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -44,9 +28,77 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Deploy
-      - name: Deploy to Azure Web App
+      - name: Resolve ACR login server
+        id: acr
+        shell: bash
+        run: |
+          if [ -n "${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}" ]; then
+            REGISTRY_NAME="${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}"
+          elif [ -n "${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }}" ]; then
+            REGISTRY_NAME="${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }}"
+          else
+            echo "::error::Set repository variable or secret AZURE_CONTAINER_REGISTRY_NAME (ACR name only, e.g. myregistry)."
+            exit 1
+          fi
+          LOGIN_SERVER=$(az acr show --name "$REGISTRY_NAME" --query loginServer -o tsv)
+          echo "login_server=$LOGIN_SERVER" >> "$GITHUB_OUTPUT"
+          echo "registry_name=$REGISTRY_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name ${{ steps.acr.outputs.registry_name }}
+
+      - name: Build and push container image
+        env:
+          LOGIN_SERVER: ${{ steps.acr.outputs.login_server }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
+          docker build -t "$IMAGE" -t "${LOGIN_SERVER}/${IMAGE_NAME}:latest" .
+          docker push "$IMAGE"
+          docker push "${LOGIN_SERVER}/${IMAGE_NAME}:latest"
+          echo "DEPLOY_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Configure Web App container settings
+        shell: bash
+        run: |
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+          if [ -z "$RG" ]; then
+            RG="${{ secrets.AZURE_RESOURCE_GROUP }}"
+          fi
+          if [ -z "$RG" ]; then
+            RG=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME }}'].resourceGroup | [0]" -o tsv)
+          fi
+          if [ -z "$RG" ] || [ "$RG" = "null" ]; then
+            echo "::error::Could not resolve resource group. Set AZURE_RESOURCE_GROUP variable or secret."
+            exit 1
+          fi
+          echo "AZURE_RESOURCE_GROUP=$RG" >> "$GITHUB_ENV"
+          az webapp config appsettings set \
+            --resource-group "$RG" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --settings WEBSITES_PORT=8080 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+
+      - name: Grant Web App managed identity pull access to ACR
+        shell: bash
+        run: |
+          az webapp identity assign \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --output none
+          PRINCIPAL_ID=$(az webapp identity show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --query principalId -o tsv)
+          ACR_ID=$(az acr show --name "${{ steps.acr.outputs.registry_name }}" --query id -o tsv)
+          az role assignment create \
+            --assignee-object-id "$PRINCIPAL_ID" \
+            --assignee-principal-type ServicePrincipal \
+            --role AcrPull \
+            --scope "$ACR_ID" \
+            2>/dev/null || true
+
+      - name: Deploy container to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: dist/azure-insights-app
+          images: ${{ env.DEPLOY_IMAGE }}
