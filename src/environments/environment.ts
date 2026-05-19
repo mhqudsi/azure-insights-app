@@ -6,7 +6,7 @@ const clientId = '804e0d8b-eb59-46a6-916e-118c2d61ed7d';
 
 /**
  * Production settings. Register redirect URI in Entra:
- * https://azureinsightsmonitoringui.azurewebsites.net
+ * https://azureinsightsmonitoringui03.azurewebsites.net
  */
 export const environment: AppEnvironment = {
   production: true,
