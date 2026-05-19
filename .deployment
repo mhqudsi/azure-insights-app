@@ -1,3 +1,0 @@
-[config]
-# CI builds the app; do not let Kudu/Oryx rebuild over the uploaded artifact.
-SCM_DO_BUILD_DURING_DEPLOYMENT=false

@@ -41,12 +41,6 @@
             "server": "src/main.server.ts",
             "outputPath": "dist/azure-insights-app",
             "outputMode": "server",
-            "security": {
-              "allowedHosts": [
-                "azureinsightsmonitoringui.azurewebsites.net",
-                "*.azurewebsites.net"
-              ]
-            },
             "ssr": {
               "entry": "src/server.ts"
             }
