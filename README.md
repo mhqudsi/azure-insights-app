@@ -54,6 +54,20 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## Deploy to Azure App Service
+
+This project is an **SSR** Node app. See **[docs/azure-deployment.md](docs/azure-deployment.md)** for:
+
+- Creating the Web App in Azure Portal (Linux, Node 20, startup `npm start`)
+- Entra ID redirect URI setup for production
+- GitHub Actions, zip deploy, and troubleshooting
+
+Quick zip deploy on Windows:
+
+```powershell
+.\scripts\package-for-azure.ps1
+```
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

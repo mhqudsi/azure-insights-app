@@ -3,6 +3,8 @@
 # Compiled output
 /dist
 /deploy-package
+/deploy-package.zip
+/app.zip
 /tmp
 /out-tsc
 /bazel-out

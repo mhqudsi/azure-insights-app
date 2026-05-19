@@ -6,6 +6,7 @@
     "start": "node dist/azure-insights-app/server/server.mjs",
     "dev": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:azure-insights-app": "node dist/azure-insights-app/server/server.mjs"
