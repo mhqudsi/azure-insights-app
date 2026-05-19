@@ -11,7 +11,7 @@ on:
 
 env:
   # Must match your App Service name (https://<name>.azurewebsites.net)
-  AZURE_WEBAPP_NAME: azureinsightsmonitoringui03
+  AZURE_WEBAPP_NAME: azureinsightsmonitoringui
   NODE_VERSION: '20'
 
 jobs:

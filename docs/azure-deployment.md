@@ -8,7 +8,7 @@ This app uses **Angular SSR** with an **Express** server. Azure App Service runs
 - Azure subscription
 - Microsoft Entra app registration updated with your production URL (see [Entra ID](#entra-id-msal))
 
-Production URLs are configured in `src/environments/environment.ts`. If your Web App name differs from `azureinsightsmonitoringui`, update `redirectUri`, `postLogoutRedirectUri`, and register the new URL in Entra before deploying.
+Production URLs are configured in `src/environments/environment.ts`. If your Web App name differs from `azureinsightsmonitoringui03`, update `redirectUri`, `postLogoutRedirectUri`, and register the new URL in Entra before deploying.
 
 ---
 
@@ -23,7 +23,7 @@ Production URLs are configured in `src/environments/environment.ts`. If your Web
 |--------|----------------|
 | **Subscription** | Your subscription |
 | **Resource group** | Create new, e.g. `rg-azure-insights-ui` |
-| **Name** | Globally unique, e.g. `azureinsightsmonitoringui` (becomes `https://<name>.azurewebsites.net`) |
+| **Name** | Globally unique, e.g. `azureinsightsmonitoringui03` (becomes `https://<name>.azurewebsites.net`) |
 | **Publish** | Code |
 | **Runtime stack** | **Node 20 LTS** |
 | **Operating system** | **Linux** (recommended for Node SSR) |
@@ -98,7 +98,7 @@ Then upload `deploy-package.zip`:
 az login
 az webapp deployment source config-zip \
   --resource-group rg-azure-insights-ui \
-  --name azureinsightsmonitoringui \
+  --name azureinsightsmonitoringui03 \
   --src deploy-package.zip
 ```
 
@@ -143,14 +143,14 @@ az appservice plan create \
   --is-linux
 
 az webapp create \
-  --name azureinsightsmonitoringui \
+  --name azureinsightsmonitoringui03 \
   --resource-group rg-azure-insights-ui \
   --plan plan-azure-insights-ui \
   --runtime "NODE:20-lts"
 
 az webapp config set \
   --resource-group rg-azure-insights-ui \
-  --name azureinsightsmonitoringui \
+  --name azureinsightsmonitoringui03 \
   --startup-file "npm start"
 ```
 
