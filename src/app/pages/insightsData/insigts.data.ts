@@ -141,12 +141,16 @@ export class InsightsData implements OnInit {
     {
       colId: 'actions',
       headerName: 'Logs',
-      maxWidth: 120,
+      width: 96,
+      minWidth: 96,
+      maxWidth: 96,
       sortable: false,
       filter: false,
       floatingFilter: false,
+      suppressMovable: true,
+      cellClass: 'ag-cell-actions',
       cellRenderer: () =>
-        '<button type="button" class="btn btn-sm btn-outline-primary view-logs-btn">View logs</button>',
+        '<button type="button" class="btn btn-sm btn-outline-primary view-logs-btn">Logs</button>',
     },
     {
       field: 'totalRequests',

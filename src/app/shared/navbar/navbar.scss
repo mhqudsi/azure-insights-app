@@ -35,8 +35,36 @@
   opacity: 0.85;
 }
 
+.navbar-profile-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.15rem;
+  color: rgba(255, 255, 255, 0.9) !important;
+  max-width: 16rem;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.25;
+}
+
+.navbar-profile-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.navbar-profile-icon {
+  flex-shrink: 0;
+  margin-right: 0.35rem;
+}
+
+.navbar-profile-caret {
+  flex-shrink: 0;
+  margin-left: 0.15rem;
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .navbar-user {
-  max-width: 12rem;
+  max-width: 10rem;
+  font-size: 0.875rem;
 }
 
 .navbar-auth-btn {

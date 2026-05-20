@@ -3,8 +3,26 @@
   margin: 0 auto;
 }
 
-:host ::ng-deep .view-logs-btn {
-  white-space: nowrap;
+:host ::ng-deep .ag-grid-host .ag-cell.ag-cell-actions {
+  overflow: hidden;
+  padding: 0 4px !important;
+
+  .ag-cell-wrapper {
+    overflow: hidden;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .view-logs-btn {
+    display: inline-block;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
 }
 
 .page-card {

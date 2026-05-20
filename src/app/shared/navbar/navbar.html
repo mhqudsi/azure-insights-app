@@ -42,18 +42,24 @@
       </ul>
 
       <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
-        <span *ngIf="isLoggedIn && accountName" class="small text-white-50 text-truncate navbar-user">
-          {{ accountName }}
-        </span>
-        <button
-          *ngIf="isLoggedIn"
-          mat-stroked-button
-          type="button"
-          class="navbar-auth-btn"
-          (click)="signOut()">
-          <mat-icon class="me-1">logout</mat-icon>
-          Sign out
-        </button>
+        <ng-container *ngIf="isLoggedIn && accountName">
+          <button
+            mat-button
+            type="button"
+            class="navbar-profile-btn"
+            [matMenuTriggerFor]="profileMenu"
+            aria-label="Account menu">
+            <mat-icon class="navbar-profile-icon">account_circle</mat-icon>
+            <span class="navbar-user text-truncate">{{ accountName }}</span>
+            <mat-icon class="navbar-profile-caret">arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #profileMenu="matMenu" xPosition="before" class="navbar-profile-menu">
+            <button mat-menu-item type="button" (click)="signOut()">
+              <mat-icon>logout</mat-icon>
+              <span>Sign out</span>
+            </button>
+          </mat-menu>
+        </ng-container>
         <button
           *ngIf="!isLoggedIn"
           mat-flat-button

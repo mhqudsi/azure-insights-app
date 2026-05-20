@@ -1,8 +1,4 @@
-# Build and deploy the Angular SSR app to Azure App Service (Linux, Node 20).
-# Setup: Azure Portal → Web App → Deployment Center → Download publish profile,
-# then add it as GitHub secret AZURE_WEBAPP_PUBLISH_PROFILE.
-
-name: Deploy to Azure Web App
+name: Deploy to Azure Web App Slot
 
 on:
   push:
@@ -10,13 +6,14 @@ on:
   workflow_dispatch:
 
 env:
-  # Must match your App Service name (https://<name>.azurewebsites.net)
   AZURE_WEBAPP_NAME: azureinsightsmonitoringui03
+  AZURE_WEBAPP_SLOT: staging
   NODE_VERSION: '20'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,9 +33,10 @@ jobs:
       - name: Prune dev dependencies
         run: npm prune --omit=dev
 
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure Web App Slot
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
