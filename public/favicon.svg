@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Azure Insights">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d47a1" />
+      <stop offset="55%" stop-color="#1565c0" />
+      <stop offset="100%" stop-color="#0277bd" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#bg)" />
+  <path
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="2.25"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    d="M7 21.5 12.5 15 17 18.5 25 9"
+  />
+  <circle cx="25" cy="9" r="2.25" fill="#ffffff" />
+  <path
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="2.25"
+    stroke-linecap="round"
+    d="M7 24.5h18"
+    opacity="0.55"
+  />
+</svg>
